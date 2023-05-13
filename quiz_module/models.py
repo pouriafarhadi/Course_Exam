@@ -74,12 +74,17 @@ class UserAnswer(models.Model):
     option = models.ForeignKey(Option, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.quiz_taker}/{self.question.no}/{self.option.status}"
+        try:
+            return f"{self.quiz_taker}/{self.question.no}/{self.option.status}"
+        except:
+            return f"{self.quiz_taker}/{self.question.no}"
 
 
 class QuizResult(models.Model):
-    user = models.ForeignKey(UserModel, on_delete=models.CASCADE, null=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True)
-    total_questions = models.PositiveIntegerField()
-    total_correct = models.PositiveIntegerField()
-    total_incorrect = models.PositiveIntegerField()
+    quiz_taker = models.ForeignKey(QuizTaker, on_delete=models.CASCADE)
+    total_questions = models.PositiveIntegerField(null=True)
+    total_correct = models.PositiveIntegerField(null=True)
+    total_incorrect = models.PositiveIntegerField(null=True)
+
+    def __str__(self):
+        return f"{self.quiz_taker}"

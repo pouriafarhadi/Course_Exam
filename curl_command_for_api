@@ -1,21 +1,29 @@
+SIGNUP :
 curl -d "{\"email\":\"amirhajif2@gmail.com\",\"course_id\":\"5520\"}" -H "Content-Type: application/json" -X POST http://localhost:8000/api/signup
 
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/courses/pouria
-
+LOGIN:
 curl -d "{\"email\":\"amirhajif2@gmail.com\",\"password\":\"vFe7Xwa93k\"}" -H "Content-Type: application/json" -X POST http://localhost:8000/api/login
 
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/create-lesson/ -H "Content-Type: application/json" -X POST -d "{\"course\": 1, \"lessonName\": \"Lesson 6\", \"questionsNo\": \"10\"}"
+FORGOT:
+curl -d "{\"email\":\"amirhajif2@gmail.com\"}" -H "Content-Type: application/json" -X POST http://localhost:8000/api/forgot
 
-curl for starting a quiz:
+
+WHAT COURSES USER HAVE :
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/courses/pouria
+
+QUIZ TAKER:
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/quiz-taker/pouria
+
+
+STARTING QUIZ:
 curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/start-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\"}"
 
+# ( for taking all of the lessons for a course set the lesson_name to "all" )
 
-curl for ending a quiz:
+ENDING QUIZ:
 curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/end-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"all\"}"
 
 
-curl for answer the question:
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/question-answer/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 2\", \"question_number\": 1, \"index\": \"c\" }"
+ANSWER THE QUESTION:
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/question-answer/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\", \"question_number\": 1, \"index\": \"b\" }"
 
-
-d

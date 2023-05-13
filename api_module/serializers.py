@@ -23,17 +23,16 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = ['lessonName', 'questions_no',]
-
+        fields = ['lessonName', 'questions_no', ]
 
 
 class CourseSerializer(serializers.ModelSerializer):
     lessons = LessonSerializer(many=True, read_only=True)
     questions = QuestionSerializer(many=True, read_only=True)
+
     class Meta:
         model = Course
         fields = ['courseName', 'hours', 'minutes', 'seconds', 'lessons', 'questions']
-
 
     def to_representation(self, instance):
         print(instance)
@@ -55,7 +54,7 @@ class UserAnswerSerializer(serializers.ModelSerializer):
         index = obj.option.index
         d["status"] = status
         d["index"] = index
-        if not status :
+        if not status:
             q_id = obj.question.id
             o = Option.objects.filter(question_id=q_id)
             for i in o:
@@ -92,32 +91,15 @@ class QuizTakerSerializer(serializers.ModelSerializer):
 
 
 class QuizResultSerializer(serializers.ModelSerializer):
-    course = serializers.ReadOnlyField(source="course.courseName")
-    total_correct = serializers.SerializerMethodField()
-    total_incorrect = serializers.SerializerMethodField()
-    user = serializers.ReadOnlyField(source="user.username")
+    quiz_taker = serializers.SerializerMethodField()
+
+
 
     class Meta:
         model = QuizResult
-        fields = ['user', 'course', 'total_questions', 'total_correct', 'total_incorrect']
-
-    def get_total_correct(self, obj):
-        quiz_taker = obj.user
-        user_answers = UserAnswer.objects.filter(quiz_taker__user=quiz_taker)
-        correct_answers = 0
-        for answer in user_answers:
-            if answer.option.status:
-                correct_answers += 1
-        return correct_answers
-
-    def get_total_incorrect(self, obj):
-        quiz_taker = obj.user
-        user_answers = UserAnswer.objects.filter(quiz_taker__user=quiz_taker)
-        incorrect_answers = 0
-        for answer in user_answers:
-            if not answer.option.status:
-                incorrect_answers += 1
-        return incorrect_answers
+        fields = ["quiz_taker", "total_questions", "total_correct", "total_incorrect"]
 
 
-
+    def get_quiz_taker(self, obj: QuizResult):
+        d = {"course": obj.quiz_taker.course.courseName, "lesson": obj.quiz_taker.lesson.lessonName}
+        return d

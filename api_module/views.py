@@ -38,7 +38,7 @@ class QuizResultAPIView(generics.ListAPIView):
         username = self.kwargs['username']
         user = UserModel.objects.get(username=username)
 
-        return QuizResult.objects.filter(user_id=user.id)
+        return QuizResult.objects.filter(quiz_taker__user_id=user.id)
 
 
 class CourseAPIView(generics.ListAPIView):
@@ -192,13 +192,17 @@ def start_quiz(request: HttpRequest):
             else:
                 lessons = course.lessons.filter(lessonName__iexact=lesson_name)
             for lesson in lessons:
-                QuizTaker.objects.create(user=user,
-                                         course=course,
-                                         lesson=lesson,
-                                         is_taken=True,
-                                         start_time=timezone.now())
 
-            return JsonResponse({'ok': 'done'}, status=201)
+                if QuizTaker.objects.filter(user=user,course=course,lesson=lesson).exists():
+                    return JsonResponse({'error': 'this exam is already taken'}, status=400)
+                else:
+                    QuizTaker.objects.create(user=user,
+                                             course=course,
+                                             lesson=lesson,
+                                             is_taken=True,
+                                             start_time=timezone.now())
+
+                return JsonResponse({'ok': 'done'}, status=201)
         except KeyError:
             return JsonResponse({'error': 'bad req'}, status=400)
         except IntegrityError:
@@ -223,14 +227,14 @@ def end_quiz(request: HttpRequest):
         else:
             lessons = course.lessons.filter(lessonName__iexact=lesson_name)
         if not lessons:
-            return JsonResponse({"error": "vojod nadarad"}, status=400)
+            return JsonResponse({"error": "lesson vojod nadarad"}, status=400)
         for lesson in lessons:
             taker = QuizTaker.objects.get(user=user,
                                           course=course,
                                           lesson=lesson)
             taker.end_time = timezone.now()
             taker.save()
-        return JsonResponse({"ok": "set end time"}, status=202)
+        return JsonResponse({"ok": "set end time successfully"}, status=202)
 
 
 @api_view(['POST'])
@@ -248,11 +252,36 @@ def question_answer(request: HttpRequest):
                                          lesson=lesson).first()
         if taker:
             question = lesson.questions.get(no=data1["question_number"])
-            option = question.options.get(index=data1["index"])
-            UserAnswer.objects.create(quiz_taker=taker,
-                                      question=question,
-                                      option=option)
+            try:
+                option = question.options.get(index=data1["index"])
+                UserAnswer.objects.create(quiz_taker=taker,
+                                          question=question,
+                                          option=option)
+                taker_result = QuizResult.objects.filter(quiz_taker=taker).first()
+                if taker_result is None:
+                    taker_result = QuizResult.objects.create(quiz_taker=taker,
+                                                             total_questions=0,
+                                                             total_correct=0,
+                                                             total_incorrect=0)
 
+            except:
+
+                UserAnswer.objects.create(quiz_taker=taker,
+                                          question=question,)
+                taker_result = QuizResult.objects.filter(quiz_taker=taker).first()
+                if taker_result is None:
+                    taker_result = QuizResult.objects.create(quiz_taker=taker,
+                                                             total_questions=0,
+                                                             total_correct=0,
+                                                             total_incorrect=0)
+
+            taker_result.total_questions += 1
+            correct_option = question.options.get(status=True).index
+            if data1["index"] == correct_option:
+                taker_result.total_correct += 1
+            else:
+                taker_result.total_incorrect += 1
+            taker_result.save()
         else:
             return JsonResponse({"error": "take the lesson started first"}, status=400)
         return JsonResponse({"ok": "ok"}, status=201)

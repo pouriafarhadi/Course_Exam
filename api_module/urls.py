@@ -1,13 +1,13 @@
 from django.urls import path
 
-from api_module.views import QuizTakerAPIView, question_answer, end_quiz, start_quiz, QuizResultAPIView, CourseAPIView, signup, log_in
+from api_module.views import QuizTakerAPIView, question_answer, end_quiz, start_quiz, QuizResultAPIView, CourseAPIView, signup, log_in, forgot
 
 urlpatterns = [
 
     # Courses
 
     path('courses/<str:email>', CourseAPIView.as_view(), name='courses'),
-    path('quiz-taker/<str:username>', QuizTakerAPIView.as_view(), name='quiz-taker-list'),
+    path('quiz-taker/<str:username>/', QuizTakerAPIView.as_view(), name='quiz-taker-list'),
     path('quiz-taker/<str:username>/result/', QuizResultAPIView.as_view(), name='quiz-result'),
 
     # take quiz
@@ -21,9 +21,10 @@ urlpatterns = [
     # Auth
     path("signup", signup, name="register_page"),
     path("login", log_in, name="login_page"),
+    path("forgot", forgot, name="forgot_page")
 ]
 
 
 
 
-#todo : think about creating a user
+
