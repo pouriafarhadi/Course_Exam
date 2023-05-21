@@ -42,9 +42,9 @@ class QuizResultAPIView(generics.ListAPIView):
 
 
 class CourseAPIView(generics.ListAPIView):
-    # queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
         user_email = self.kwargs['email']
@@ -193,7 +193,7 @@ def start_quiz(request: HttpRequest):
                 lessons = course.lessons.filter(lessonName__iexact=lesson_name)
             for lesson in lessons:
 
-                if QuizTaker.objects.filter(user=user,course=course,lesson=lesson).exists():
+                if QuizTaker.objects.filter(user=user, course=course, lesson=lesson).exists():
                     return JsonResponse({'error': 'this exam is already taken'}, status=400)
                 else:
                     QuizTaker.objects.create(user=user,
@@ -267,7 +267,7 @@ def question_answer(request: HttpRequest):
             except:
 
                 UserAnswer.objects.create(quiz_taker=taker,
-                                          question=question,)
+                                          question=question, )
                 taker_result = QuizResult.objects.filter(quiz_taker=taker).first()
                 if taker_result is None:
                     taker_result = QuizResult.objects.create(quiz_taker=taker,
