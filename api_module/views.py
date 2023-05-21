@@ -19,6 +19,7 @@ from utils.email_service import send_email
 class QuizTakerAPIView(generics.ListAPIView):
     serializer_class = QuizTakerSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
         username = self.kwargs['username']
@@ -33,6 +34,7 @@ class QuizTakerAPIView(generics.ListAPIView):
 class QuizResultAPIView(generics.ListAPIView):
     serializer_class = QuizResultSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
         username = self.kwargs['username']
