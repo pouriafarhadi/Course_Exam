@@ -50,7 +50,7 @@ class Option(models.Model):
 
 class UserModel(AbstractUser):
     course = models.ManyToManyField(Course, null=True)
-    phone_number = models.IntegerField(null=True)
+    phone_number = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.username

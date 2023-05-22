@@ -62,6 +62,8 @@ class CourseAPIView(generics.ListAPIView):
         return Response(response_data)
 
 
+# todo: add course to user
+
 @csrf_exempt
 def signup(request: HttpRequest):
     if request.method == "POST":
@@ -75,10 +77,16 @@ def signup(request: HttpRequest):
                 consumer_secret="cs_537364de74126923605ea3e1169b9e74b8d2527e",
                 wp_api=True,
                 version="wc/v3",
-                query_string_auth=True  # Force Basic Authentication as query string true and using under HTTPS
+                query_string_auth=True
             )
+
             data: dict = wcapi.get('orders').json()
+
+            flag_user_wrong_id_exist = False
+            flag_course_id_not_exist = False
+
             for i in data:
+                print(i["id"], user_order_id)
                 if i["id"] == user_order_id:
                     if i['billing']['email'] == user_email:
                         user_exist: bool = UserModel.objects.filter(email__iexact=user_email).exists()
@@ -104,35 +112,36 @@ def signup(request: HttpRequest):
                             user.save()
                             user.course.add(course)
                             user.save()
-                            # token: token = Token.objects.create(user=user)
-                            # token: return JsonResponse({"token": str(token)}, status=201)
                             try:
                                 send_email("Activated Account",
                                            user.email,
                                            {"username": user.email, "password": password},
                                            "info_email.html")
+                                flag_user_wrong_id_exist = False
+                                flag_course_id_not_exist = False
                                 return JsonResponse({"signup": "ok (email sent)"}, status=201)
 
                             except:
                                 return JsonResponse({"signup": "fail"}, status=400)
 
                     else:
-
-                        return JsonResponse(
-                            {'error': 'That username is wrong, ID is exist'},
-                            status=400
-                        )
+                        flag_user_wrong_id_exist = True
 
                 else:
-                    return JsonResponse(
-                        {'error': 'That course id not exist. Please choose a new user id'},
-                        status=404
-                    )
+                    flag_course_id_not_exist = True
+
+            if flag_course_id_not_exist or flag_user_wrong_id_exist:
+                return JsonResponse(
+                    {'error': "course id or email is wrong or didn't match (try again)"},
+                    status=404
+                )
+
         except:
             return JsonResponse(
                 {'error': 'Errorrrrrrrrrrr'},
                 status=400
             )
+
     else:
         return JsonResponse(
             {'error': 'bad req'},
@@ -147,12 +156,14 @@ def log_in(request: HttpRequest):
             data1 = json.loads(request.body.decode())
             user_email = data1['email']
             user_password = data1['password']
-            user = authenticate(request, username=user_email, password=user_password)
+            user = UserModel.objects.filter(email__iexact=user_email).first()
             if user is None:
                 return JsonResponse({'error': 'user does not exist'}, status=400)
             else:
-                login(request, user)
-                return JsonResponse({'login': 'ok'}, status=200)
+                is_pass_correct = user.check_password(user_password)
+                if is_pass_correct:
+                    return JsonResponse({'login': 'ok'}, status=200)
+                return JsonResponse({'error': "can't login (user or pass incorrect)"}, status=400)
         except:
             return JsonResponse({'error': 'error'}, status=400)
 
