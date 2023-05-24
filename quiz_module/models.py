@@ -72,6 +72,7 @@ class UserAnswer(models.Model):
     quiz_taker = models.ForeignKey(QuizTaker, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     option = models.ForeignKey(Option, on_delete=models.CASCADE, null=True, blank=True)
+    # is_marked = models.BooleanField(default=False)
 
     def __str__(self):
         try:
@@ -88,3 +89,13 @@ class QuizResult(models.Model):
 
     def __str__(self):
         return f"{self.quiz_taker}"
+
+
+class NotesQuestion(models.Model):
+    user_answer = models.ForeignKey(UserAnswer, on_delete=models.CASCADE)
+    note = models.TextField(null=True, blank=True)
+    create_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user_answer}/{self.note}"

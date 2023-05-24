@@ -1,6 +1,6 @@
 from django.db.models import Count
 from rest_framework import serializers
-from quiz_module.models import Option, Question, Lesson, Course, UserAnswer, QuizTaker, QuizResult
+from quiz_module.models import Option, Question, Lesson, Course, UserAnswer, QuizTaker, QuizResult, NotesQuestion
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -35,7 +35,6 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = ['courseName', 'hours', 'minutes', 'seconds', 'lessons', 'questions']
 
     def to_representation(self, instance):
-        print(instance)
         representation = super().to_representation(instance)
         lessons = instance.lessons.all().annotate(questions_no=Count('questions'))
         representation['lessons'] = LessonSerializer(lessons, many=True).data
@@ -44,14 +43,38 @@ class CourseSerializer(serializers.ModelSerializer):
         return representation
 
 
+class NotesQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotesQuestion
+        fields = ["note", "create_time", "update_time"]
+
+
+class NotesQuestionDetailSerializer(serializers.ModelSerializer):
+    note_detail = serializers.SerializerMethodField()
+
+    def get_note_detail(self, obj: NotesQuestion):
+        d = {"course": obj.user_answer.quiz_taker.course.courseName, "lesson": obj.user_answer.quiz_taker.lesson.lessonName, "question": obj.user_answer.question.question, "question_no": obj.user_answer.question.no}
+        return d
+
+    class Meta:
+        model = NotesQuestion
+        fields = ["note_detail", "note", "create_time", "update_time"]
+
+
 class UserAnswerSerializer(serializers.ModelSerializer):
     option = serializers.SerializerMethodField()
     question = serializers.ReadOnlyField(source="question.question")
+    question_number = serializers.ReadOnlyField(source="question.no")
+    note = serializers.SerializerMethodField()
 
     def get_option(self, obj: UserAnswer):
         d = {}
-        status = obj.option.status
-        index = obj.option.index
+        try:
+            status = obj.option.status
+            index = obj.option.index
+        except:
+            status = ""
+            index = ""
         d["status"] = status
         d["index"] = index
         if not status:
@@ -62,9 +85,16 @@ class UserAnswerSerializer(serializers.ModelSerializer):
                     d["right_answer"] = i.index
         return d
 
+    def get_note(self, obj: UserAnswer):
+        try:
+            note = NotesQuestion.objects.get(user_answer=obj)
+            return NotesQuestionSerializer(note).data
+        except:
+            return ""
+
     class Meta:
         model = UserAnswer
-        fields = ['question', 'option']
+        fields = ['question', 'question_number', 'option', 'note']
 
 
 class QuizTakerSerializer(serializers.ModelSerializer):
@@ -93,12 +123,9 @@ class QuizTakerSerializer(serializers.ModelSerializer):
 class QuizResultSerializer(serializers.ModelSerializer):
     quiz_taker = serializers.SerializerMethodField()
 
-
-
     class Meta:
         model = QuizResult
         fields = ["quiz_taker", "total_questions", "total_correct", "total_incorrect"]
-
 
     def get_quiz_taker(self, obj: QuizResult):
         d = {"course": obj.quiz_taker.course.courseName, "lesson": obj.quiz_taker.lesson.lessonName}

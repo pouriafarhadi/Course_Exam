@@ -9,21 +9,28 @@ curl -d "{\"email\":\"amirhajif2@gmail.com\"}" -H "Content-Type: application/jso
 
 
 WHAT COURSES USER HAVE :
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/courses/pouria
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/courses/pouria.f8410@gmail.com/
 
-QUIZ TAKER:
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/quiz-taker/pouria
+QUIZ TAKER (answers):
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/quiz-taker/pouria.f8410@gmail.com/
+
+QUIZ TAKER (result):
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/quiz-taker/pouria.f8410@gmail.com/result/
+
+QUIZ NOTES:
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/q_notes/pouria.f8410@gmail.com/
+
 
 
 STARTING QUIZ:
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/start-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\"}"
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/start-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria.f8410@gmail.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\"}"
 
 # ( for taking all of the lessons for a course set the lesson_name to "all" )
 
 ENDING QUIZ:
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/end-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"all\"}"
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/end-quiz/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria.f8410@gmail.com\", \"course_id\": 5520, \"lesson_name\": \"all\"}"
 
 
 ANSWER THE QUESTION:
-curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/question-answer/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria@pouria.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\", \"question_number\": 1, \"index\": \"b\" }"
+curl -H "Authorization: Token a6277616815ed5c4cf164c6ea9d2f0599fc7faf8" http://localhost:8000/api/question-answer/ -H "Content-Type: application/json" -X POST -d "{\"email\": \"pouria.f8410@gmail.com\", \"course_id\": 5520, \"lesson_name\": \"lesson 1\", \"question_number\": 1, \"index\": \"b\", \"note\": \"this is note for question number 1\" }"
 

@@ -37,6 +37,7 @@ admin.site.register(models.Option)
 admin.site.register(models.QuizTaker)
 admin.site.register(models.UserAnswer)
 admin.site.register(models.QuizResult)
+admin.site.register(models.NotesQuestion)
 
 # user
 """

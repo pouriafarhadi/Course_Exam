@@ -1,18 +1,15 @@
 import json
 from django.utils import timezone
 from django.db import IntegrityError
-from django.http import HttpRequest, JsonResponse, HttpResponse
+from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, permissions
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from woocommerce import API
-from api_module.serializers import QuizTakerSerializer, QuizResultSerializer, CourseSerializer
-from quiz_module.models import QuizTaker, UserModel, QuizResult, Course, Lesson, UserAnswer
-from django.contrib.auth import authenticate, login
+from api_module.serializers import QuizTakerSerializer, QuizResultSerializer, CourseSerializer, NotesQuestionDetailSerializer
+from quiz_module.models import QuizTaker, UserModel, QuizResult, Course, UserAnswer, NotesQuestion
 from utils.email_service import send_email
 
 
@@ -22,7 +19,7 @@ class QuizTakerAPIView(generics.ListAPIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
-        username = self.kwargs['username']
+        username = self.kwargs['email']
         user = UserModel.objects.get(username=username)
         queryset = QuizTaker.objects.filter(user=user).order_by('course')
         is_taken = self.request.query_params.get('is_taken')
@@ -37,10 +34,13 @@ class QuizResultAPIView(generics.ListAPIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
-        username = self.kwargs['username']
-        user = UserModel.objects.get(username=username)
+        try:
+            email = self.kwargs['email']
+            user = UserModel.objects.get(email__iexact=email)
 
-        return QuizResult.objects.filter(quiz_taker__user_id=user.id)
+            return QuizResult.objects.filter(quiz_taker__user_id=user.id)
+        except:
+            return ""
 
 
 class CourseAPIView(generics.ListAPIView):
@@ -49,20 +49,50 @@ class CourseAPIView(generics.ListAPIView):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
-        user_email = self.kwargs['email']
-        user = UserModel.objects.get(username=user_email)
-        courses = user.course
-        return courses
+        try:
+            user_email = self.kwargs['email']
+            user = UserModel.objects.get(email__iexact=user_email)
+            courses = user.course
+            return courses
+        except:
+            return ""
 
     def list(self, request, *args, **kwargs):
         courses = self.get_queryset()
         serializer = self.get_serializer(courses, many=True)
+        if not serializer.data:
+            return Response("not exist")
         response_data = {"courses": serializer.data}
 
         return Response(response_data)
 
 
+class NotesQuestionAPIView(generics.ListAPIView):
+    serializer_class = NotesQuestionDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+
+    def get_queryset(self):
+        try:
+            email = self.kwargs['email']
+            user = UserModel.objects.get(email__iexact=email)
+            notes = NotesQuestion.objects.filter(user_answer__quiz_taker__user=user)
+            return notes
+        except:
+            return ""
+
+    def list(self, request, *args, **kwargs):
+        notes = self.get_queryset()
+        serializer = self.get_serializer(notes, many=True)
+        if not serializer.data:
+            return Response("not exist")
+        response_data = serializer.data
+        return Response(response_data)
+
+
 # todo: add course to user
+# todo: update user courses
+
 
 @csrf_exempt
 def signup(request: HttpRequest):
@@ -220,6 +250,8 @@ def start_quiz(request: HttpRequest):
             return JsonResponse({'error': 'bad req'}, status=400)
         except IntegrityError:
             return JsonResponse({'error': 'wrong info'}, status=400)
+        except:
+            return JsonResponse({'error': 'bad req'}, status=400)
     return JsonResponse({'error': "its not post"}, status=400)
 
 
@@ -229,25 +261,28 @@ def start_quiz(request: HttpRequest):
 @csrf_exempt
 def end_quiz(request: HttpRequest):
     if request.method == "POST":
-        data1 = json.loads(request.body.decode())
-        email = data1["email"]
-        course_id = data1["course_id"]
-        lesson_name = data1["lesson_name"]
-        user = UserModel.objects.filter(email__iexact=email).first()
-        course = Course.objects.filter(course_id=course_id).first()
-        if lesson_name == "all":
-            lessons = course.lessons.all()
-        else:
-            lessons = course.lessons.filter(lessonName__iexact=lesson_name)
-        if not lessons:
-            return JsonResponse({"error": "lesson vojod nadarad"}, status=400)
-        for lesson in lessons:
-            taker = QuizTaker.objects.get(user=user,
-                                          course=course,
-                                          lesson=lesson)
-            taker.end_time = timezone.now()
-            taker.save()
-        return JsonResponse({"ok": "set end time successfully"}, status=202)
+        try:
+            data1 = json.loads(request.body.decode())
+            email = data1["email"]
+            course_id = data1["course_id"]
+            lesson_name = data1["lesson_name"]
+            user = UserModel.objects.filter(email__iexact=email).first()
+            course = Course.objects.filter(course_id=course_id).first()
+            if lesson_name == "all":
+                lessons = course.lessons.all()
+            else:
+                lessons = course.lessons.filter(lessonName__iexact=lesson_name)
+            if not lessons:
+                return JsonResponse({"error": "lesson vojod nadarad"}, status=400)
+            for lesson in lessons:
+                taker = QuizTaker.objects.get(user=user,
+                                              course=course,
+                                              lesson=lesson)
+                taker.end_time = timezone.now()
+                taker.save()
+            return JsonResponse({"ok": "set end time successfully"}, status=202)
+        except:
+            return JsonResponse({'error': 'bad req'}, status=400)
 
 
 @api_view(['POST'])
@@ -267,9 +302,11 @@ def question_answer(request: HttpRequest):
             question = lesson.questions.get(no=data1["question_number"])
             try:
                 option = question.options.get(index=data1["index"])
-                UserAnswer.objects.create(quiz_taker=taker,
-                                          question=question,
-                                          option=option)
+                created_user_answer = UserAnswer.objects.get_or_create(quiz_taker=taker,
+                                                                       question=question,
+                                                                       option=option)
+                if not created_user_answer[1]:
+                    return JsonResponse({"error": "already answered"}, status=400)
                 taker_result = QuizResult.objects.filter(quiz_taker=taker).first()
                 if taker_result is None:
                     taker_result = QuizResult.objects.create(quiz_taker=taker,
@@ -279,8 +316,10 @@ def question_answer(request: HttpRequest):
 
             except:
 
-                UserAnswer.objects.create(quiz_taker=taker,
-                                          question=question, )
+                created_user_answer = UserAnswer.objects.get_or_create(quiz_taker=taker,
+                                                                       question=question, )
+                if not created_user_answer[1]:
+                    return JsonResponse({"error": "already answered"}, status=400)
                 taker_result = QuizResult.objects.filter(quiz_taker=taker).first()
                 if taker_result is None:
                     taker_result = QuizResult.objects.create(quiz_taker=taker,
@@ -295,6 +334,9 @@ def question_answer(request: HttpRequest):
             else:
                 taker_result.total_incorrect += 1
             taker_result.save()
+
+            NotesQuestion.objects.create(user_answer=created_user_answer[0],
+                                         note=data1["note"])
         else:
             return JsonResponse({"error": "take the lesson started first"}, status=400)
         return JsonResponse({"ok": "ok"}, status=201)
